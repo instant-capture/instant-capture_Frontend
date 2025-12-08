@@ -16,8 +16,12 @@ const io = new Server(server, {
 const PORT_NAME = '/dev/tty.usbmodem11401';
 const BAUD_RATE = 9600;
 
+let port;
+let isMockMode = false;
+let mockInterval = null;
+
 try {
-    const port = new SerialPort({ path: PORT_NAME, baudRate: BAUD_RATE });
+    port = new SerialPort({ path: PORT_NAME, baudRate: BAUD_RATE });
     const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
 
     port.on('open', () => {
@@ -45,11 +49,30 @@ try {
 
     port.on('error', (err) => {
         console.error('❌ Serial port error:', err.message);
+        startMockMode();
     });
 
 } catch (err) {
     console.error('❌ Failed to create SerialPort:', err.message);
+    startMockMode();
+}
+
+// =====================================================================
+// Mock Mode - Simulates Arduino data when no hardware is connected
+// =====================================================================
+function startMockMode() {
+    if (isMockMode) return;
+    isMockMode = true;
     console.log('⚠️ Running server in Mock Mode (No Arduino connected)');
+    console.log('📡 Sending mock distance data every 500ms...');
+
+    // Send mock distance data every 500ms
+    mockInterval = setInterval(() => {
+        const mockDistance = (50 + Math.random() * 100).toFixed(1); // Random 50-150cm
+        const mockData = { type: 'distance', dist: parseFloat(mockDistance), state: 'play' };
+        console.log('📤 [MOCK] Sending:', mockData);
+        io.emit('sensor-data', mockData);
+    }, 500);
 }
 
 io.on('connection', (socket) => {
@@ -58,13 +81,13 @@ io.on('connection', (socket) => {
 
     // Forward commands from Web to Arduino
     socket.on('send-command', (cmd) => {
+        console.log(`Command received: ${cmd}`);
         if (port && port.isOpen) {
-            console.log(`Command received: ${cmd}`);
             port.write(cmd, (err) => {
                 if (err) console.error('Error writing to serial:', err.message);
             });
         } else {
-            console.log('Serial port not open, cannot send command');
+            console.log('[MOCK] Would send to Arduino:', cmd);
         }
     });
 });

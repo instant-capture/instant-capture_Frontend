@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import './TrainingDashboard.css';
+
+const socket = io('http://localhost:3001');
 
 function TrainingDashboard({ onFinish }) {
     const [time, setTime] = useState(0);
+    const [isConnected, setIsConnected] = useState(false);
     const [metrics, setMetrics] = useState({
         level: 1,
         reactionTime: '0.0s',
@@ -10,82 +14,67 @@ function TrainingDashboard({ onFinish }) {
         hitMiss: '-'
     });
 
-    const [isConnected, setIsConnected] = useState(false);
-    const portRef = useRef(null);
-    const readerRef = useRef(null);
-
-    const connectSerial = async () => {
-        try {
-            const port = await navigator.serial.requestPort();
-            await port.open({ baudRate: 9600 });
-
-            portRef.current = port;
+    useEffect(() => {
+        // Socket.IO 연결 상태 확인
+        socket.on('connect', () => {
+            console.log('Socket.IO connected');
             setIsConnected(true);
-            console.log('Connected to Arduino via Serial');
+        });
 
-            const textDecoder = new TextDecoderStream();
-            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
-            const reader = textDecoder.readable.getReader();
-            readerRef.current = reader;
+        socket.on('disconnect', () => {
+            console.log('Socket.IO disconnected');
+            setIsConnected(false);
+        });
 
-            try {
-                let buffer = '';
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) {
-                        break;
-                    }
+        // 센서 데이터 수신
+        socket.on('sensor-data', (data) => {
+            console.log('Received:', data);
 
-                    buffer += value;
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop(); // Keep incomplete line in buffer
+            if (data.type === 'distance') {
+                setMetrics(prev => ({
+                    ...prev,
+                    distance: `${data.dist.toFixed(1)}cm`
+                }));
+            } else if (data.type === 'escape') {
+                setMetrics(prev => ({
+                    ...prev,
+                    reactionTime: `${(data.reaction / 1000).toFixed(2)}s`
+                }));
+            } else if (data.type === 'result') {
+                let resultText = '-';
+                if (data.result === 'success') resultText = '성공';
+                else if (data.result === 'fail') resultText = '실패';
+                else if (data.result === 'invalid') resultText = '무효';
 
-                    for (const line of lines) {
-                        if (!line.trim()) continue;
-
-                        try {
-                            const data = JSON.parse(line);
-                            console.log('Received:', data);
-
-                            if (data.type === 'distance') {
-                                setMetrics(prev => ({
-                                    ...prev,
-                                    distance: `${data.dist.toFixed(1)}cm`
-                                }));
-                            } else if (data.type === 'escape') {
-                                setMetrics(prev => ({
-                                    ...prev,
-                                    reactionTime: `${(data.reaction / 1000).toFixed(2)}s`
-                                }));
-                            } else if (data.type === 'result') {
-                                let resultText = '-';
-                                if (data.result === 'success') resultText = '성공';
-                                else if (data.result === 'fail') resultText = '실패';
-                                else if (data.result === 'invalid') resultText = '무효';
-
-                                setMetrics(prev => ({
-                                    ...prev,
-                                    level: data.level,
-                                    hitMiss: resultText,
-                                    reactionTime: data.reaction ? `${(data.reaction / 1000).toFixed(2)}s` : prev.reactionTime
-                                }));
-                            }
-                        } catch (e) {
-                            console.error('Error parsing JSON:', e, 'Line:', line);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Error reading serial data:', error);
-            } finally {
-                reader.releaseLock();
+                setMetrics(prev => ({
+                    ...prev,
+                    level: data.level,
+                    hitMiss: resultText,
+                    reactionTime: data.reaction ? `${(data.reaction / 1000).toFixed(2)}s` : prev.reactionTime
+                }));
+            } else if (data.type === 'ready') {
+                setMetrics(prev => ({
+                    ...prev,
+                    level: data.level
+                }));
             }
+        });
 
-        } catch (error) {
-            console.error('Failed to connect to serial port:', error);
+        // 연결 시도
+        if (!socket.connected) {
+            socket.connect();
+        } else {
+            setIsConnected(true);
         }
-    };
 
+        return () => {
+            socket.off('connect');
+            socket.off('disconnect');
+            socket.off('sensor-data');
+        };
+    }, []);
+
+    // 타이머
     useEffect(() => {
         const timer = setInterval(() => {
             if (isConnected) {
@@ -93,15 +82,7 @@ function TrainingDashboard({ onFinish }) {
             }
         }, 1000);
 
-        return () => {
-            clearInterval(timer);
-            if (readerRef.current) {
-                readerRef.current.cancel();
-            }
-            if (portRef.current) {
-                portRef.current.close();
-            }
-        };
+        return () => clearInterval(timer);
     }, [isConnected]);
 
     const formatTime = (seconds) => {
@@ -115,11 +96,9 @@ function TrainingDashboard({ onFinish }) {
             <div className="dashboard-header">
                 <h2>훈련 진행 중</h2>
                 <div className="controls">
-                    {!isConnected && (
-                        <button className="connect-button" onClick={connectSerial}>
-                            Arduino 연결
-                        </button>
-                    )}
+                    <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+                        {isConnected ? '🟢 연결됨' : '🔴 연결 안됨'}
+                    </div>
                     <div className="timer">{formatTime(time)}</div>
                 </div>
             </div>
