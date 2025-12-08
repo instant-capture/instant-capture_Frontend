@@ -1,0 +1,49 @@
+.landing-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100%;
+    text-align: center;
+    animation: fadeIn 0.8s ease-out;
+}
+
+.landing-content h1 {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: #15803d;
+    /* Green 700 */
+    font-weight: 700;
+}
+
+.landing-content p {
+    font-size: 1.5rem;
+    color: #4b5563;
+    /* Gray 600 */
+    margin-bottom: 3rem;
+}
+
+.start-button {
+    padding: 1rem 3rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+    background-color: #22c55e;
+    /* Green 500 */
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(34, 197, 94, 0.3);
+}
+
+.start-button:hover {
+    background-color: #16a34a;
+    /* Green 600 */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(34, 197, 94, 0.4);
+}
+
+.start-button:active {
+    transform: translateY(0);
+}

@@ -1,0 +1,87 @@
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.dashboard-header h2 {
+    font-size: 2.5rem;
+    color: #15803d;
+    margin-bottom: 1rem;
+}
+
+.timer {
+    font-size: 4rem;
+    font-weight: 700;
+    color: #2c3e50;
+    font-variant-numeric: tabular-nums;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    width: 100%;
+    margin-bottom: 40px;
+}
+
+.metric-card {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    border: 1px solid #e5e7eb;
+}
+
+.metric-card h3 {
+    font-size: 1.2rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+}
+
+.metric-card p {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.metric-card p.success {
+    color: #22c55e;
+}
+
+.metric-card p.fail {
+    color: #ef4444;
+}
+
+.stop-button {
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: white;
+    background-color: #ef4444;
+    /* Red 500 */
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+}
+
+.stop-button:hover {
+    background-color: #dc2626;
+    /* Red 600 */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(239, 68, 68, 0.4);
+}
